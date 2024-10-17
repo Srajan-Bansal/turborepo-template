@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String @id @default(cuid())
+  name     String
+  email    String @unique
+  password String
+  tasks    Task[]
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  triggers    Trigger[]
+  actions     Action[]
+  taskRuns    TaskRun[]
+}
+
+model Trigger {
+  id                  String            @id @default(cuid())
+  availableTrigger    AvailableTriggers @relation(fields: [availableTriggersId], references: [id])
+  availableTriggersId String
+  task                Task?             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId              String?
+}
+
+model AvailableTriggers {
+  id       String    @id @default(cuid())
+  name     String
+  triggers Trigger[]
+}
+
+model Action {
+  id                 String            @id @default(cuid())
+  availableAction    AvailableActions? @relation(fields: [availableActionsId], references: [id])
+  availableActionsId String?
+  task               Task              @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId             String
+  sortingOrder       Int               @default(0)
+}
+
+model AvailableActions {
+  id      String   @id @default(cuid())
+  name    String
+  actions Action[]
+}
+
+model TaskRun {
+  id            String         @id @default(cuid())
+  metadata      Json
+  task          Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId        String
+  taskRunOutbox TaskRunOutbox?
+}
+
+model TaskRunOutbox {
+  id        String  @id @default(cuid())
+  taskRun   TaskRun @relation(fields: [taskRunId], references: [id], onDelete: Cascade)
+  taskRunId String  @unique
+  status    Status  @default(PENDING)
+}
+
+enum Status {
+  PENDING
+  SUCCESS
+  FAILED
+}
